@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { Plus, ChevronRight, Search, CheckCircle2, X, Sparkles, PenLine, Lock } from 'lucide-react'
+import { Plus, ChevronDown, ChevronUp, Search, CheckCircle2, X, Sparkles, PenLine, Lock } from 'lucide-react'
+import { HierarchyBreadcrumb } from '@/components/ui/HierarchyBreadcrumb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
 import { useApp } from '@/context/AppContext'
-import type { ScenarioType } from '@/types'
+import type { Scenario, ScenarioType } from '@/types'
 import { cn } from '@/lib/utils'
 
 const TYPE_COLORS: Record<ScenarioType, string> = {
@@ -26,10 +28,13 @@ export default function BatchDetail() {
   const navigate = useNavigate()
 
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const dataset = evalDatasets.find((d) => d.id === datasetId)
   const version = datasetVersions.find((v) => v.id === versionId)
   const batch = datasetBatches.find((b) => b.id === batchId)
+  const versionCount = datasetVersions.filter((v) => v.datasetId === datasetId).length
+  const batchCount = datasetBatches.filter((b) => b.versionId === versionId).length
 
   if (!dataset || !version || !batch) {
     return (
@@ -55,17 +60,12 @@ export default function BatchDetail() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 animate-fade-in">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-xs text-vz-gray-400 flex-wrap">
-        <Link to="/datasets" className="hover:text-vz-red transition-colors">Datasets</Link>
-        <ChevronRight size={12} />
-        <Link to={`/datasets/${datasetId}`} className="hover:text-vz-red transition-colors">{dataset.name}</Link>
-        <ChevronRight size={12} />
-        <Link to={`/datasets/${datasetId}/versions/${versionId}`} className="hover:text-vz-red transition-colors">{version.label}</Link>
-        <ChevronRight size={12} />
-        <span className="text-vz-gray-700 font-medium">{batch.name}</span>
-      </div>
-
+      <HierarchyBreadcrumb segments={[
+        { label: 'Datasets', href: '/datasets' },
+        { label: dataset.name, count: `${versionCount} version${versionCount !== 1 ? 's' : ''}`, href: `/datasets/${datasetId}` },
+        { label: version.label, count: `${batchCount} batch${batchCount !== 1 ? 'es' : ''}`, href: `/datasets/${datasetId}/versions/${versionId}` },
+        { label: batch.name, count: `${batch.scenarioIds.length} scenario${batch.scenarioIds.length !== 1 ? 's' : ''}` },
+      ]} />
       {/* Batch header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -126,33 +126,13 @@ export default function BatchDetail() {
       ) : (
         <div className="space-y-2">
           {batchScenarios.map((sc) => (
-            <div
+            <ScenarioRow
               key={sc.id}
-              className="flex items-center gap-3 rounded border border-border bg-white px-4 py-3"
-            >
-              <span className={cn(
-                'shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
-                TYPE_COLORS[sc.type]
-              )}>
-                {sc.type}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-vz-gray-900 truncate">{sc.title}</p>
-                {sc.tags.length > 0 && (
-                  <div className="mt-0.5 flex gap-1 flex-wrap">
-                    {sc.tags.slice(0, 3).map((t) => <Badge key={t}>{t}</Badge>)}
-                  </div>
-                )}
-              </div>
-              {!isAutopilot && (
-                <button
-                  onClick={() => handleRemoveScenario(sc.id)}
-                  className="shrink-0 text-vz-gray-300 hover:text-vz-red transition-colors"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
+              scenario={sc}
+              expanded={expandedId === sc.id}
+              onToggle={() => setExpandedId(expandedId === sc.id ? null : sc.id)}
+              onRemove={!isAutopilot ? () => handleRemoveScenario(sc.id) : undefined}
+            />
           ))}
         </div>
       )}
@@ -169,6 +149,80 @@ export default function BatchDetail() {
         />
       )}
     </div>
+  )
+}
+
+// ── Scenario Row ─────────────────────────────────────────────────────────────
+
+function ScenarioRow({ scenario: sc, expanded, onToggle, onRemove }: {
+  scenario: Scenario
+  expanded: boolean
+  onToggle: () => void
+  onRemove?: () => void
+}) {
+  return (
+    <Card>
+      <div
+        className="flex cursor-pointer items-center gap-3 px-4 py-3"
+        onClick={onToggle}
+      >
+        <span className={cn(
+          'shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
+          TYPE_COLORS[sc.type]
+        )}>
+          {sc.type}
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-vz-gray-900 truncate">{sc.title}</p>
+          {sc.tags.length > 0 && (
+            <div className="mt-0.5 flex gap-1 flex-wrap">
+              {sc.tags.slice(0, 3).map((t) => <Badge key={t}>{t}</Badge>)}
+            </div>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          {onRemove && (
+            <button onClick={onRemove} className="text-vz-gray-300 hover:text-vz-red transition-colors p-1">
+              <X size={13} />
+            </button>
+          )}
+          {expanded ? <ChevronUp size={14} className="text-vz-gray-300" /> : <ChevronDown size={14} className="text-vz-gray-300" />}
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="border-t border-border px-4 pb-4 pt-3 animate-fade-in space-y-3">
+          {sc.description && (
+            <p className="text-sm text-vz-gray-600 leading-relaxed">{sc.description}</p>
+          )}
+          {sc.personaConfig && (
+            <div className="grid gap-3 sm:grid-cols-2 text-sm">
+              {(['persona', 'goal', 'context', 'guidelines'] as const).map((field) => (
+                sc.personaConfig![field] ? (
+                  <div key={field}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-vz-gray-400 mb-0.5">{field}</p>
+                    <p className="text-sm text-vz-gray-700 leading-relaxed">{sc.personaConfig![field]}</p>
+                  </div>
+                ) : null
+              ))}
+            </div>
+          )}
+          {sc.scriptMessages && sc.scriptMessages.length > 0 && (
+            <div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-vz-gray-400">Script Messages</p>
+              <ol className="space-y-1.5">
+                {sc.scriptMessages.map((msg, i) => (
+                  <li key={i} className="flex gap-2 text-sm">
+                    <span className="shrink-0 font-mono text-xs text-vz-gray-300 pt-0.5">{i + 1}.</span>
+                    <span className="text-vz-gray-700">{msg}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
   )
 }
 

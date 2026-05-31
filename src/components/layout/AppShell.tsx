@@ -74,6 +74,7 @@ function isActive(item: NavItem, pathname: string): boolean {
 function pageTitle(pathname: string): string {
   if (pathname === '/guide') return 'Guide'
   if (pathname.match(/^\/datasets\/[^/]+\/versions\/[^/]+\/batches\/.+/)) return 'Batch Detail'
+  if (pathname.match(/^\/datasets\/[^/]+\/versions\/[^/]+\/generate\/review\/.+/)) return 'Review Generated Scenarios'
   if (pathname.match(/^\/datasets\/[^/]+\/versions\/[^/]+\/generate$/)) return 'Generate Autopilot Batch'
   if (pathname.match(/^\/datasets\/[^/]+\/versions\/.+/)) return 'Dataset Version'
   if (pathname.match(/^\/datasets\/.+/)) return 'Evaluation Dataset'

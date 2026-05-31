@@ -20,6 +20,7 @@ import DatasetDetail from '@/pages/datasets/DatasetDetail'
 import VersionDetail from '@/pages/datasets/VersionDetail'
 import BatchDetail from '@/pages/datasets/BatchDetail'
 import GenerateAutopilotBatch from '@/pages/datasets/GenerateAutopilotBatch'
+import AutopilotReview from '@/pages/datasets/AutopilotReview'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user } = useApp()
@@ -61,6 +62,7 @@ function AppRoutes() {
               <Route path="/datasets/:datasetId/versions/:versionId" element={<VersionDetail />} />
               <Route path="/datasets/:datasetId/versions/:versionId/batches/:batchId" element={<BatchDetail />} />
               <Route path="/datasets/:datasetId/versions/:versionId/generate" element={<GenerateAutopilotBatch />} />
+              <Route path="/datasets/:datasetId/versions/:versionId/generate/review/:runId" element={<AutopilotReview />} />
 
               {/* Scenario Builder */}
               <Route path="/scenarios" element={<ScenarioLibrary />} />

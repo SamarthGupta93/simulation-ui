@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { Plus, Layers, ArrowRight, Trash2, ChevronRight } from 'lucide-react'
+import { Plus, Layers, ArrowRight, Trash2 } from 'lucide-react'
+import { HierarchyBreadcrumb } from '@/components/ui/HierarchyBreadcrumb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -49,12 +50,10 @@ export default function DatasetDetail() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 animate-fade-in">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-xs text-vz-gray-400">
-        <Link to="/datasets" className="hover:text-vz-red transition-colors">Evaluation Datasets</Link>
-        <ChevronRight size={12} />
-        <span className="text-vz-gray-700 font-medium">{dataset.name}</span>
-      </div>
+      <HierarchyBreadcrumb segments={[
+        { label: 'Datasets', href: '/datasets' },
+        { label: dataset.name, count: `${versions.length} version${versions.length !== 1 ? 's' : ''}` },
+      ]} />
 
       {/* Dataset header */}
       <div className="flex items-start justify-between gap-4">

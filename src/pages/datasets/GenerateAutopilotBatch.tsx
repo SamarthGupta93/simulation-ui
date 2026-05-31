@@ -32,7 +32,7 @@ export default function GenerateAutopilotBatch() {
   const { datasetId, versionId } = useParams<{ datasetId: string; versionId: string }>()
   const {
     evalDatasets, datasetVersions,
-    addGenerationRun, updateGenerationRun, addScenario, addDatasetBatch,
+    addGenerationRun, updateGenerationRun, addScenario,
   } = useApp()
   const navigate = useNavigate()
 
@@ -84,18 +84,8 @@ export default function GenerateAutopilotBatch() {
         })),
       })
 
-      // Auto-create the batch — 1:1 with this generation run
-      const batchName = deriveBatchName(reqFile?.name)
-      const batch = addDatasetBatch({
-        versionId: versionId!,
-        datasetId: datasetId!,
-        name: batchName,
-        source: 'autopilot',
-        scenarioIds: generatedIds,
-        generationRunId: run.id,
-      })
-
-      navigate(`/datasets/${datasetId}/versions/${versionId}/batches/${batch.id}`)
+      // Navigate to review — batch is created after the user approves scenarios
+      navigate(`/datasets/${datasetId}/versions/${versionId}/generate/review/${run.id}`)
     }, GEN_STEPS.length * 1350)
   }
 
@@ -217,7 +207,7 @@ export default function GenerateAutopilotBatch() {
 
       {status === 'running' && (
         <p className="text-center text-xs text-vz-gray-400">
-          Scenarios are being generated. You'll be taken to the new batch automatically when done.
+          Scenarios are being generated. You'll be taken to the review page when done.
         </p>
       )}
     </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { Plus, Layers, ArrowRight, Trash2, ChevronRight, Sparkles, PenLine, Search, CheckCircle2 } from 'lucide-react'
+import { Plus, Layers, ArrowRight, Trash2, Sparkles, PenLine, Search, CheckCircle2 } from 'lucide-react'
+import { HierarchyBreadcrumb } from '@/components/ui/HierarchyBreadcrumb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -40,14 +41,15 @@ export default function VersionDetail() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 animate-fade-in">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-xs text-vz-gray-400 flex-wrap">
-        <Link to="/datasets" className="hover:text-vz-red transition-colors">Datasets</Link>
-        <ChevronRight size={12} />
-        <Link to={`/datasets/${datasetId}`} className="hover:text-vz-red transition-colors">{dataset.name}</Link>
-        <ChevronRight size={12} />
-        <span className="text-vz-gray-700 font-medium">{version.label}</span>
-      </div>
+      <HierarchyBreadcrumb segments={[
+        { label: 'Datasets', href: '/datasets' },
+        {
+          label: dataset.name,
+          count: `${datasetVersions.filter(v => v.datasetId === datasetId).length} version${datasetVersions.filter(v => v.datasetId === datasetId).length !== 1 ? 's' : ''}`,
+          href: `/datasets/${datasetId}`,
+        },
+        { label: version.label, count: `${batches.length} batch${batches.length !== 1 ? 'es' : ''}` },
+      ]} />
 
       {/* Version header */}
       <div className="flex items-start justify-between gap-4">
