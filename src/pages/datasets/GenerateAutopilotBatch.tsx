@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react'
 import { flushSync } from 'react-dom'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { ChevronRight, Upload, X, FileText, Sparkles } from 'lucide-react'
+import { ChevronRight, Upload, X, FileText, Sparkles, Check, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -32,35 +32,35 @@ function deriveBatchName(docName?: string): string {
 export default function GenerateAutopilotBatch() {
   const { datasetId, versionId } = useParams<{ datasetId: string; versionId: string }>()
   const {
-    evalDatasets, datasetVersions,
+    evalDatasets, datasetVersions, activeProject,
     addGenerationRun, updateGenerationRun, addScenario,
   } = useApp()
   const navigate = useNavigate()
 
   const [reqFile, setReqFile] = useState<File | null>(null)
-  const [policyJson, setPolicyJson] = useState('')
-  const [jsonError, setJsonError] = useState('')
+  const [includePolicyConfig, setIncludePolicyConfig] = useState(false)
+  const [journeySlug, setJourneySlug] = useState('')
   const reqRef = useRef<HTMLInputElement>(null)
-  const policyRef = useRef<HTMLInputElement>(null)
 
   const { status, progress, startMockJob } = useJobPolling(1300)
 
   const dataset = evalDatasets.find((d) => d.id === datasetId)
   const version = datasetVersions.find((v) => v.id === versionId)
 
-  function handleJsonChange(val: string) {
-    setPolicyJson(val)
-    if (!val.trim()) { setJsonError(''); return }
-    try { JSON.parse(val); setJsonError('') }
-    catch { setJsonError('Invalid JSON') }
-  }
-
   function handleGenerate() {
     const run = addGenerationRun({
       status: 'running',
       versionId: versionId!,
       datasetId: datasetId!,
-      inputs: { documentName: reqFile?.name, policyConfig: policyJson.trim() || undefined },
+      inputs: {
+        documentName: reqFile?.name,
+        policyConfig: includePolicyConfig ? {
+          orgSlug: activeProject!.orgSlug,
+          lobSlug: activeProject!.lobSlug,
+          projectSlug: activeProject!.projectSlug,
+          journeySlug: journeySlug.trim(),
+        } : undefined,
+      },
       progress: [],
       scenarioIds: [],
     })
@@ -96,7 +96,9 @@ export default function GenerateAutopilotBatch() {
     }, GEN_STEPS.length * 1350)
   }
 
-  const canGenerate = status !== 'running' && (!!reqFile || policyJson.trim().length > 0) && !jsonError
+  const canGenerate = status !== 'running'
+    && (!!reqFile || includePolicyConfig)
+    && (!includePolicyConfig || !!journeySlug.trim())
 
   if (!dataset || !version) {
     return (
@@ -163,39 +165,52 @@ export default function GenerateAutopilotBatch() {
 
           <Separator />
 
-          {/* Policy JSON */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Policy Configuration (JSON)</Label>
-              <Button variant="outline" size="sm" onClick={() => policyRef.current?.click()}>
-                <Upload size={13} /> Upload JSON
-              </Button>
-            </div>
-            <input
-              ref={policyRef}
-              type="file"
-              accept=".json"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (!f) return
-                const r = new FileReader()
-                r.onload = (ev) => handleJsonChange(ev.target?.result as string)
-                r.readAsText(f)
-              }}
-            />
-            <Textarea
-              placeholder='{ "max_turns": 12, "language": "en", "escalation_enabled": true }'
-              value={policyJson}
-              onChange={(e) => handleJsonChange(e.target.value)}
-              rows={5}
-              className={cn('font-mono text-xs', jsonError && 'border-red-400 focus:ring-red-400')}
-            />
-            {jsonError && <p className="text-xs text-red-600">{jsonError}</p>}
+          {/* Policy Config */}
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setIncludePolicyConfig((v) => !v)}
+              className="flex items-center gap-2"
+            >
+              <span className={cn(
+                'flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors',
+                includePolicyConfig ? 'border-vz-red bg-vz-red' : 'border-vz-gray-300 hover:border-vz-gray-400'
+              )}>
+                {includePolicyConfig && <Check size={10} className="text-white" strokeWidth={3} />}
+              </span>
+              <Label className="cursor-pointer">Include Policy Configuration</Label>
+            </button>
+
+            {includePolicyConfig && (
+              <div className="grid gap-3 sm:grid-cols-2 pt-1">
+                {([
+                  { label: 'Organization Slug', value: activeProject?.orgSlug ?? '', locked: true },
+                  { label: 'LOB Slug', value: activeProject?.lobSlug ?? '', locked: true },
+                  { label: 'Project Slug', value: activeProject?.projectSlug ?? '', locked: true },
+                ] as const).map(({ label, value }) => (
+                  <div key={label} className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <Label className="text-xs">{label}</Label>
+                      <Lock size={10} className="text-vz-gray-300" />
+                    </div>
+                    <Input value={value} disabled className="bg-vz-gray-100 text-vz-gray-400 font-mono text-xs cursor-not-allowed" />
+                  </div>
+                ))}
+                <div className="space-y-1">
+                  <Label className="text-xs">Journey Slug *</Label>
+                  <Input
+                    placeholder="e.g. billing-dispute"
+                    value={journeySlug}
+                    onChange={(e) => setJourneySlug(e.target.value)}
+                    className="font-mono text-xs"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Batch name preview */}
-          {(reqFile || policyJson.trim()) && status === 'idle' && (
+          {(reqFile || includePolicyConfig) && status === 'idle' && (
             <div className="rounded bg-vz-gray-100 px-3 py-2">
               <p className="text-xs text-vz-gray-400 mb-0.5">Batch will be named</p>
               <p className="text-sm font-medium text-vz-gray-700">{deriveBatchName(reqFile?.name)}</p>

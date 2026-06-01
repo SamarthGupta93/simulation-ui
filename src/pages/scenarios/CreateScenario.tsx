@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   User, List, Layers, Plus, X, ArrowRight, Check,
-  Sparkles, PenLine, Upload, FileText, History,
+  Sparkles, PenLine, Upload, FileText, History, Lock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -302,29 +302,29 @@ const GEN_STEPS = [
 ]
 
 function AIFlow({ onBack }: { onBack: () => void }) {
-  const { addGenerationRun, updateGenerationRun, addScenario } = useApp()
+  const { addGenerationRun, updateGenerationRun, addScenario, activeProject } = useApp()
   const navigate = useNavigate()
 
   const [reqFile, setReqFile] = useState<File | null>(null)
-  const [policyJson, setPolicyJson] = useState('')
-  const [jsonError, setJsonError] = useState('')
+  const [includePolicyConfig, setIncludePolicyConfig] = useState(false)
+  const [journeySlug, setJourneySlug] = useState('')
   const [createdRunId, setCreatedRunId] = useState<string | null>(null)
   const reqRef = useRef<HTMLInputElement>(null)
-  const policyRef = useRef<HTMLInputElement>(null)
 
   const { status, progress, startMockJob } = useJobPolling(1300)
-
-  function handleJsonChange(val: string) {
-    setPolicyJson(val)
-    if (!val.trim()) { setJsonError(''); return }
-    try { JSON.parse(val); setJsonError('') }
-    catch { setJsonError('Invalid JSON') }
-  }
 
   function handleGenerate() {
     const run = addGenerationRun({
       status: 'running',
-      inputs: { documentName: reqFile?.name, policyConfig: policyJson.trim() || undefined },
+      inputs: {
+        documentName: reqFile?.name,
+        policyConfig: includePolicyConfig ? {
+          orgSlug: activeProject!.orgSlug,
+          lobSlug: activeProject!.lobSlug,
+          projectSlug: activeProject!.projectSlug,
+          journeySlug: journeySlug.trim(),
+        } : undefined,
+      },
       progress: [],
       scenarioIds: [],
     })
@@ -350,7 +350,9 @@ function AIFlow({ onBack }: { onBack: () => void }) {
     }, GEN_STEPS.length * 1350)
   }
 
-  const canGenerate = status !== 'running' && (!!reqFile || policyJson.trim().length > 0) && !jsonError
+  const canGenerate = status !== 'running'
+    && (!!reqFile || includePolicyConfig)
+    && (!includePolicyConfig || !!journeySlug.trim())
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 animate-fade-in">
@@ -369,25 +371,48 @@ function AIFlow({ onBack }: { onBack: () => void }) {
 
           <Separator />
 
-          {/* Policy JSON */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Policy Configuration (JSON)</Label>
-              <Button variant="outline" size="sm" onClick={() => policyRef.current?.click()}>
-                <Upload size={13} /> Upload JSON
-              </Button>
-            </div>
-            <input ref={policyRef} type="file" accept=".json" className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0]; if (!f) return
-                const r = new FileReader(); r.onload = (ev) => handleJsonChange(ev.target?.result as string); r.readAsText(f)
-              }} />
-            <Textarea
-              placeholder='{ "max_turns": 12, "language": "en", "escalation_enabled": true }'
-              value={policyJson} onChange={(e) => handleJsonChange(e.target.value)}
-              rows={5} className={cn('font-mono text-xs', jsonError && 'border-red-400 focus:ring-red-400')}
-            />
-            {jsonError && <p className="text-xs text-red-600">{jsonError}</p>}
+          {/* Policy Config */}
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setIncludePolicyConfig((v) => !v)}
+              className="flex items-center gap-2"
+            >
+              <span className={cn(
+                'flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors',
+                includePolicyConfig ? 'border-vz-red bg-vz-red' : 'border-vz-gray-300 hover:border-vz-gray-400'
+              )}>
+                {includePolicyConfig && <Check size={10} className="text-white" strokeWidth={3} />}
+              </span>
+              <Label className="cursor-pointer">Include Policy Configuration</Label>
+            </button>
+
+            {includePolicyConfig && (
+              <div className="grid gap-3 sm:grid-cols-2 pt-1">
+                {([
+                  { label: 'Organization Slug', value: activeProject?.orgSlug ?? '' },
+                  { label: 'LOB Slug', value: activeProject?.lobSlug ?? '' },
+                  { label: 'Project Slug', value: activeProject?.projectSlug ?? '' },
+                ] as const).map(({ label, value }) => (
+                  <div key={label} className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <Label className="text-xs">{label}</Label>
+                      <Lock size={10} className="text-vz-gray-300" />
+                    </div>
+                    <Input value={value} disabled className="bg-vz-gray-100 text-vz-gray-400 font-mono text-xs cursor-not-allowed" />
+                  </div>
+                ))}
+                <div className="space-y-1">
+                  <Label className="text-xs">Journey Slug *</Label>
+                  <Input
+                    placeholder="e.g. billing-dispute"
+                    value={journeySlug}
+                    onChange={(e) => setJourneySlug(e.target.value)}
+                    className="font-mono text-xs"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between pt-1">

@@ -86,7 +86,12 @@ export interface GenerationRun {
   datasetId?: string
   inputs: {
     documentName?: string
-    policyConfig?: string
+    policyConfig?: {
+      orgSlug: string
+      lobSlug: string
+      projectSlug: string
+      journeySlug: string
+    }
   }
   progress: ProgressEvent[]
   scenarioIds: string[]

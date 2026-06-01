@@ -202,7 +202,12 @@ export const MOCK_GENERATION_RUNS: GenerationRun[] = [
     status: 'completed',
     inputs: {
       documentName: 'CS_Requirements_v3.pdf',
-      policyConfig: '{"max_turns": 12, "language": "en", "escalation_enabled": true}',
+      policyConfig: {
+        orgSlug: 'verizon',
+        lobSlug: 'customer-service',
+        projectSlug: 'cs-bot-eval',
+        journeySlug: 'billing-dispute',
+      },
     },
     progress: [
       { step: 'Parse documents', message: 'Extracted 48 pages of requirements', percent: 17, timestamp: '2026-05-15T09:58:00Z' },

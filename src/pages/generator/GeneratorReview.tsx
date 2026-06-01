@@ -81,11 +81,21 @@ export default function GeneratorReview() {
       {/* Policy config used */}
       {run.inputs.policyConfig && (
         <Card>
-          <CardHeader><CardTitle>Policy Config Used</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Policy Configuration</CardTitle></CardHeader>
           <CardContent>
-            <pre className="overflow-x-auto rounded bg-vz-gray-100 p-3 text-xs font-mono text-vz-gray-700">
-              {(() => { try { return JSON.stringify(JSON.parse(run.inputs.policyConfig!), null, 2) } catch { return run.inputs.policyConfig } })()}
-            </pre>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+              {([
+                ['Organization', run.inputs.policyConfig.orgSlug],
+                ['LOB', run.inputs.policyConfig.lobSlug],
+                ['Project', run.inputs.policyConfig.projectSlug],
+                ['Journey', run.inputs.policyConfig.journeySlug],
+              ] as [string, string][]).map(([label, value]) => (
+                <div key={label}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-vz-gray-400">{label}</p>
+                  <p className="mt-0.5 font-mono text-sm text-vz-gray-700">{value}</p>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
