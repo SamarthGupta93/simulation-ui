@@ -1,4 +1,4 @@
-import type { Agent, Scenario, GenerationRun, SimulationRun, User, Project, EvalDataset, DatasetVersion, DatasetBatch } from '@/types'
+import type { Agent, Scenario, GenerationRun, SimulationRun, Experiment, User, Project, EvalDataset, DatasetVersion, DatasetBatch } from '@/types'
 
 export const MOCK_USER: User = {
   id: 'user-1',
@@ -229,7 +229,137 @@ export const MOCK_GENERATION_RUNS: GenerationRun[] = [
   },
 ]
 
+export const MOCK_EXPERIMENTS: Experiment[] = [
+  {
+    id: 'exp-1',
+    name: 'CS Bot Regression Suite',
+    description: 'Tracking iterative improvements to CS Bot v2 against billing & account scenarios.',
+    datasetId: 'ds-1',
+    versionId: 'dv-1',
+    agentId: 'agent-1',
+    createdAt: '2026-05-15T09:00:00Z',
+  },
+]
+
+const EXP_SCENARIO_IDS = ['sc-1', 'sc-2', 'sc-3', 'sc-4', 'sc-5']
+
+// sc-1: always pass | sc-2: fail→pass(r2) | sc-3: fail→pass(r3)→fail(r4)→pass(r5)
+// sc-4: fail→fail→pass(r3)→pass | sc-5: always fail
+// Pass rates: 20% → 40% → 80% → 60% → 80%
+
 export const MOCK_SIMULATION_RUNS: SimulationRun[] = [
+  // ── Experiment runs ────────────────────────────────────────────────────────
+  {
+    id: 'sim-exp-1',
+    experimentId: 'exp-1',
+    agentId: 'agent-1',
+    scenarioIds: EXP_SCENARIO_IDS,
+    config: { maxTurns: 12, timeoutMs: 30000 },
+    status: 'completed',
+    progress: [
+      { step: 'Validate endpoint', message: 'Agent responded in 210ms', percent: 20, timestamp: '2026-05-15T10:01:00Z' },
+      { step: 'Run scenarios', message: 'Executed 5 scenarios', percent: 80, timestamp: '2026-05-15T10:02:30Z' },
+      { step: 'Finalize', message: 'Results compiled', percent: 100, timestamp: '2026-05-15T10:02:45Z' },
+    ],
+    results: [
+      { scenarioId: 'sc-1', status: 'pass', turnCount: 8, durationMs: 18400, transcript: [{ role: 'user', content: "I have a $45 charge I didn't authorize." }, { role: 'agent', content: "I've reviewed the charge and issued a full $45 credit. You'll see it in 1–2 billing cycles." }] },
+      { scenarioId: 'sc-2', status: 'fail', turnCount: 4, durationMs: 9200, failReason: 'Agent did not provide trade-in value after 3 explicit requests', transcript: [{ role: 'user', content: "What's the trade-in value for my iPhone 14?" }, { role: 'agent', content: "We have great upgrade options available! Would you like to visit a store for a personalized assessment?" }] },
+      { scenarioId: 'sc-3', status: 'fail', turnCount: 3, durationMs: 7100, failReason: 'Agent could not complete identity verification flow', transcript: [{ role: 'user', content: "I'm locked out of my account." }, { role: 'agent', content: "Please visit a store with a photo ID to regain access." }] },
+      { scenarioId: 'sc-4', status: 'fail', turnCount: 4, durationMs: 8800, failReason: 'Agent did not explain roaming options or pricing', transcript: [{ role: 'user', content: "I need to activate roaming for Germany next week." }, { role: 'agent', content: "International roaming may incur additional charges. Please call 611 for details." }] },
+      { scenarioId: 'sc-5', status: 'fail', turnCount: 5, durationMs: 11200, failReason: 'Agent did not offer retention discount or alternative plan', transcript: [{ role: 'user', content: "I want to downgrade to a cheaper plan." }, { role: 'agent', content: "I can process a plan change. Our basic plan is $35/month." }] },
+    ],
+    createdAt: '2026-05-15T10:00:00Z',
+    completedAt: '2026-05-15T10:02:45Z',
+  },
+  {
+    id: 'sim-exp-2',
+    experimentId: 'exp-1',
+    agentId: 'agent-1',
+    scenarioIds: EXP_SCENARIO_IDS,
+    config: { maxTurns: 12, timeoutMs: 30000 },
+    status: 'completed',
+    progress: [
+      { step: 'Validate endpoint', message: 'Agent responded in 198ms', percent: 20, timestamp: '2026-05-18T14:01:00Z' },
+      { step: 'Run scenarios', message: 'Executed 5 scenarios', percent: 80, timestamp: '2026-05-18T14:02:30Z' },
+      { step: 'Finalize', message: 'Results compiled', percent: 100, timestamp: '2026-05-18T14:02:50Z' },
+    ],
+    results: [
+      { scenarioId: 'sc-1', status: 'pass', turnCount: 8, durationMs: 17900, transcript: [{ role: 'user', content: "I have a $45 charge I didn't authorize." }, { role: 'agent', content: "I've verified the error and issued a $45 credit immediately." }] },
+      { scenarioId: 'sc-2', status: 'pass', turnCount: 7, durationMs: 16400, transcript: [{ role: 'user', content: "What's the trade-in value for my iPhone 14?" }, { role: 'agent', content: "Your iPhone 14 is worth up to $380 in trade-in credit toward a new device. Would you like to see current upgrade promotions?" }] },
+      { scenarioId: 'sc-3', status: 'fail', turnCount: 3, durationMs: 7000, failReason: 'Agent directed user to store instead of completing verification by phone', transcript: [{ role: 'user', content: "I'm locked out and need to reset my password." }, { role: 'agent', content: "For security, please visit a store with a valid ID." }] },
+      { scenarioId: 'sc-4', status: 'fail', turnCount: 4, durationMs: 8600, failReason: 'Agent did not explain TravelPass pricing clearly', transcript: [{ role: 'user', content: "Can you explain the TravelPass options for Germany?" }, { role: 'agent', content: "TravelPass is available. Please check the Verizon website for current pricing." }] },
+      { scenarioId: 'sc-5', status: 'fail', turnCount: 5, durationMs: 10900, failReason: 'No retention offer made; agent only listed plan prices', transcript: [{ role: 'user', content: "My budget is $50/month max. What are my options?" }, { role: 'agent', content: "Our plans start at $35/month. I can change your plan right now." }] },
+    ],
+    createdAt: '2026-05-18T14:00:00Z',
+    completedAt: '2026-05-18T14:02:50Z',
+  },
+  {
+    id: 'sim-exp-3',
+    experimentId: 'exp-1',
+    agentId: 'agent-1',
+    scenarioIds: EXP_SCENARIO_IDS,
+    config: { maxTurns: 12, timeoutMs: 30000 },
+    status: 'completed',
+    progress: [
+      { step: 'Validate endpoint', message: 'Agent responded in 185ms', percent: 20, timestamp: '2026-05-21T11:01:00Z' },
+      { step: 'Run scenarios', message: 'Executed 5 scenarios', percent: 80, timestamp: '2026-05-21T11:02:30Z' },
+      { step: 'Finalize', message: 'Results compiled', percent: 100, timestamp: '2026-05-21T11:02:45Z' },
+    ],
+    results: [
+      { scenarioId: 'sc-1', status: 'pass', turnCount: 8, durationMs: 17200, transcript: [{ role: 'user', content: "I have a $45 charge I didn't authorize." }, { role: 'agent', content: "Confirmed — charge reversed and $45 credit applied." }] },
+      { scenarioId: 'sc-2', status: 'pass', turnCount: 7, durationMs: 15900, transcript: [{ role: 'user', content: "What's the trade-in value for my iPhone 14?" }, { role: 'agent', content: "Your iPhone 14 is worth $380 trade-in. With the current promotion you'd pay $0 down on the iPhone 16." }] },
+      { scenarioId: 'sc-3', status: 'pass', turnCount: 6, durationMs: 13400, transcript: [{ role: 'user', content: "I'm locked out of my My Verizon account." }, { role: 'agent', content: "I've sent a new reset link to your email. It should arrive within 2 minutes — please check and let me know." }] },
+      { scenarioId: 'sc-4', status: 'pass', turnCount: 8, durationMs: 17800, transcript: [{ role: 'user', content: "I need roaming for Germany. What's TravelPass?" }, { role: 'agent', content: "TravelPass is $10/day and gives you your domestic plan's talk, text, and data. For 10 days that's $100 total. Want me to activate it now?" }] },
+      { scenarioId: 'sc-5', status: 'fail', turnCount: 5, durationMs: 11100, failReason: 'No retention offer or student discount mentioned', transcript: [{ role: 'user', content: "I'm a student. Is there a cheaper option?" }, { role: 'agent', content: "I can move you to our $35 basic plan." }] },
+    ],
+    createdAt: '2026-05-21T11:00:00Z',
+    completedAt: '2026-05-21T11:02:45Z',
+  },
+  {
+    id: 'sim-exp-4',
+    experimentId: 'exp-1',
+    agentId: 'agent-1',
+    scenarioIds: EXP_SCENARIO_IDS,
+    config: { maxTurns: 12, timeoutMs: 30000 },
+    status: 'completed',
+    progress: [
+      { step: 'Validate endpoint', message: 'Agent responded in 220ms', percent: 20, timestamp: '2026-05-24T09:01:00Z' },
+      { step: 'Run scenarios', message: 'Executed 5 scenarios', percent: 80, timestamp: '2026-05-24T09:02:30Z' },
+      { step: 'Finalize', message: 'Results compiled', percent: 100, timestamp: '2026-05-24T09:02:50Z' },
+    ],
+    results: [
+      { scenarioId: 'sc-1', status: 'pass', turnCount: 7, durationMs: 16800, transcript: [{ role: 'user', content: "I have a $45 charge I didn't authorize." }, { role: 'agent', content: "I see the charge — reversing it now." }] },
+      { scenarioId: 'sc-2', status: 'pass', turnCount: 7, durationMs: 15400, transcript: [{ role: 'user', content: "What's my iPhone 14 trade-in value?" }, { role: 'agent', content: "Up to $380 trade-in value today." }] },
+      { scenarioId: 'sc-3', status: 'fail', turnCount: 3, durationMs: 6900, failReason: 'Agent reset link flow broken — sent to wrong email without confirmation', transcript: [{ role: 'user', content: "I need a password reset." }, { role: 'agent', content: "I've sent a reset link." }, { role: 'user', content: "I didn't receive anything." }, { role: 'agent', content: "Please check your spam folder." }] },
+      { scenarioId: 'sc-4', status: 'pass', turnCount: 8, durationMs: 17200, transcript: [{ role: 'user', content: "Activate TravelPass for Germany please." }, { role: 'agent', content: "Done — TravelPass activated at $10/day starting tomorrow." }] },
+      { scenarioId: 'sc-5', status: 'fail', turnCount: 5, durationMs: 10800, failReason: 'No retention discount offered', transcript: [{ role: 'user', content: "I need a cheaper plan." }, { role: 'agent', content: "I can downgrade your plan. The basic plan is $35/month." }] },
+    ],
+    createdAt: '2026-05-24T09:00:00Z',
+    completedAt: '2026-05-24T09:02:50Z',
+  },
+  {
+    id: 'sim-exp-5',
+    experimentId: 'exp-1',
+    agentId: 'agent-1',
+    scenarioIds: EXP_SCENARIO_IDS,
+    config: { maxTurns: 12, timeoutMs: 30000 },
+    status: 'completed',
+    progress: [
+      { step: 'Validate endpoint', message: 'Agent responded in 176ms', percent: 20, timestamp: '2026-05-28T15:01:00Z' },
+      { step: 'Run scenarios', message: 'Executed 5 scenarios', percent: 80, timestamp: '2026-05-28T15:02:20Z' },
+      { step: 'Finalize', message: 'Results compiled', percent: 100, timestamp: '2026-05-28T15:02:35Z' },
+    ],
+    results: [
+      { scenarioId: 'sc-1', status: 'pass', turnCount: 7, durationMs: 16200, transcript: [{ role: 'user', content: "I have an unauthorized $45 charge." }, { role: 'agent', content: "$45 credit applied to your account." }] },
+      { scenarioId: 'sc-2', status: 'pass', turnCount: 7, durationMs: 15100, transcript: [{ role: 'user', content: "Trade-in value for iPhone 14?" }, { role: 'agent', content: "$380 trade-in value with a $200 promo credit if you upgrade to iPhone 16 today." }] },
+      { scenarioId: 'sc-3', status: 'pass', turnCount: 6, durationMs: 13100, transcript: [{ role: 'user', content: "I'm locked out of my account." }, { role: 'agent', content: "Reset link sent to your confirmed email. You should receive it within 2 minutes." }] },
+      { scenarioId: 'sc-4', status: 'pass', turnCount: 8, durationMs: 16900, transcript: [{ role: 'user', content: "TravelPass for 10 days in Germany." }, { role: 'agent', content: "Activated — $10/day, auto-cancels after your return. Total estimate: $100." }] },
+      { scenarioId: 'sc-5', status: 'fail', turnCount: 6, durationMs: 12200, failReason: 'Student discount not mentioned; agent only offered plan downgrade', transcript: [{ role: 'user', content: "I'm a student and need to cut my bill." }, { role: 'agent', content: "I can change you to the $35 basic plan which would save you $45/month." }] },
+    ],
+    createdAt: '2026-05-28T15:00:00Z',
+    completedAt: '2026-05-28T15:02:35Z',
+  },
+  // ── Standalone run (no experiment) ─────────────────────────────────────────
   {
     id: 'sim-1',
     agentId: 'agent-1',

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { Plus, Layers, ArrowRight, Trash2, Sparkles, PenLine, Search, CheckCircle2 } from 'lucide-react'
+import { Plus, Layers, ArrowRight, Trash2, Sparkles, PenLine, Search, CheckCircle2, Clock } from 'lucide-react'
 import { HierarchyBreadcrumb } from '@/components/ui/HierarchyBreadcrumb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 
 export default function VersionDetail() {
   const { datasetId, versionId } = useParams<{ datasetId: string; versionId: string }>()
-  const { evalDatasets, datasetVersions, datasetBatches, addDatasetBatch, deleteDatasetBatch } = useApp()
+  const { evalDatasets, datasetVersions, datasetBatches, generationRuns, addDatasetBatch, deleteDatasetBatch } = useApp()
   const navigate = useNavigate()
 
   const [addOpen, setAddOpen] = useState(false)
@@ -27,6 +27,14 @@ export default function VersionDetail() {
   const batches = datasetBatches
     .filter((b) => b.versionId === versionId)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+
+  // Generation runs that completed but whose review hasn't been saved as a batch yet
+  const pendingReviews = generationRuns.filter(
+    (r) =>
+      r.versionId === versionId &&
+      r.status === 'completed' &&
+      !datasetBatches.some((b) => b.generationRunId === r.id)
+  )
 
   if (!dataset || !version) {
     return (
@@ -69,6 +77,47 @@ export default function VersionDetail() {
           <Plus size={14} /> Add Scenarios
         </Button>
       </div>
+
+      {/* Pending reviews */}
+      {pendingReviews.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <Clock size={14} className="text-amber-600 shrink-0" />
+            <p className="text-sm font-semibold text-amber-900">
+              {pendingReviews.length} autopilot run{pendingReviews.length !== 1 ? 's' : ''} awaiting review
+            </p>
+          </div>
+          <p className="text-xs text-amber-700">
+            These runs completed but have not been reviewed yet. A batch is only created after you save the review.
+          </p>
+          <div className="space-y-1.5 pt-0.5">
+            {pendingReviews.map((run) => {
+              const label = run.inputs.documentName
+                ? run.inputs.documentName.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim()
+                : `Autopilot — ${new Date(run.completedAt ?? run.createdAt).toLocaleDateString()}`
+              return (
+                <div key={run.id} className="flex items-center justify-between rounded border border-amber-200 bg-white px-3 py-2 gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-vz-gray-900 truncate">{label}</p>
+                    <p className="text-[10px] text-vz-gray-400">
+                      {run.scenarioIds.length} scenario{run.scenarioIds.length !== 1 ? 's' : ''} generated
+                      {run.completedAt && <> · {new Date(run.completedAt).toLocaleDateString()}</>}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 border-amber-300 text-amber-800 hover:bg-amber-50"
+                    onClick={() => navigate(`/datasets/${datasetId}/versions/${versionId}/generate/review/${run.id}`)}
+                  >
+                    Complete Review →
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Batches */}
       {batches.length === 0 ? (

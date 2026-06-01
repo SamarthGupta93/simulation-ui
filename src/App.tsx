@@ -21,6 +21,10 @@ import VersionDetail from '@/pages/datasets/VersionDetail'
 import BatchDetail from '@/pages/datasets/BatchDetail'
 import GenerateAutopilotBatch from '@/pages/datasets/GenerateAutopilotBatch'
 import AutopilotReview from '@/pages/datasets/AutopilotReview'
+import ExperimentsList from '@/pages/experiments/ExperimentsList'
+import CreateExperiment from '@/pages/experiments/CreateExperiment'
+import ExperimentDetail from '@/pages/experiments/ExperimentDetail'
+import ExperimentRunDetail from '@/pages/experiments/ExperimentRunDetail'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user } = useApp()
@@ -74,6 +78,12 @@ function AppRoutes() {
               <Route path="/simulator" element={<SimulatorInput />} />
               <Route path="/simulator/runs" element={<SimulatorRuns />} />
               <Route path="/simulator/runs/:id" element={<SimulatorResults />} />
+
+              {/* Experiments */}
+              <Route path="/experiments" element={<ExperimentsList />} />
+              <Route path="/experiments/new" element={<CreateExperiment />} />
+              <Route path="/experiments/:experimentId" element={<ExperimentDetail />} />
+              <Route path="/experiments/:experimentId/runs/:runId" element={<ExperimentRunDetail />} />
             </Routes>
           </AppShell>
         </ProjectGuard>

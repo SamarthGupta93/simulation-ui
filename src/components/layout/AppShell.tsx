@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, BookOpen, PlusCircle, Cpu, History, Server, BookMarked,
-  Database, ChevronDown, LogOut, FolderKanban, Layers,
+  Database, ChevronDown, LogOut, FolderKanban, Layers, FlaskConical,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useApp } from '@/context/AppContext'
@@ -44,7 +44,8 @@ function buildNav(): NavSection[] {
     {
       heading: 'Simulation',
       items: [
-        { label: 'New Simulation', icon: Cpu, to: '/simulator', exact: true },
+        { label: 'Experiments', icon: FlaskConical, to: '/experiments', matchPrefixes: ['/experiments'] },
+        { label: 'Run Simulation', icon: Cpu, to: '/simulator', exact: true },
         { label: 'Run History', icon: History, to: '/simulator/runs', matchPrefixes: ['/simulator/runs'] },
       ],
     },
@@ -78,7 +79,11 @@ function pageTitle(pathname: string): string {
   if (pathname.match(/^\/datasets\/[^/]+\/versions\/[^/]+\/generate$/)) return 'Generate Autopilot Batch'
   if (pathname.match(/^\/datasets\/[^/]+\/versions\/.+/)) return 'Dataset Version'
   if (pathname.match(/^\/datasets\/.+/)) return 'Evaluation Dataset'
+  if (pathname.match(/^\/experiments\/[^/]+\/runs\/.+/)) return 'Run Detail'
+  if (pathname.match(/^\/experiments\/new/)) return 'New Experiment'
+  if (pathname.match(/^\/experiments\/[^/]+/)) return 'Experiment'
   if (pathname.match(/^\/scenarios\/runs\/.+/)) return 'Review Generation'
+  if (pathname === '/simulator') return 'Run Simulation'
   if (pathname.match(/^\/simulator\/runs\/.+/)) return 'Simulation Results'
   const all = buildNav().flatMap((s) => s.items)
   return all.find((n) => isActive(n, pathname))?.label ?? 'SimLab'

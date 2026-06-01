@@ -1,8 +1,9 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
-import type { Agent, Scenario, GenerationRun, SimulationRun, User, Project, EvalDataset, DatasetVersion, DatasetBatch } from '@/types'
+import type { Agent, Scenario, GenerationRun, SimulationRun, Experiment, User, Project, EvalDataset, DatasetVersion, DatasetBatch } from '@/types'
 import {
   MOCK_AGENTS, MOCK_SCENARIOS, MOCK_GENERATION_RUNS, MOCK_SIMULATION_RUNS,
   MOCK_USER, MOCK_PROJECTS, MOCK_EVAL_DATASETS, MOCK_DATASET_VERSIONS, MOCK_DATASET_BATCHES,
+  MOCK_EXPERIMENTS,
 } from '@/lib/mockData'
 
 function uid() {
@@ -61,6 +62,12 @@ interface AppContextValue {
   addDatasetBatch: (b: Omit<DatasetBatch, 'id' | 'createdAt'>) => DatasetBatch
   updateDatasetBatch: (id: string, patch: Partial<DatasetBatch>) => void
   deleteDatasetBatch: (id: string) => void
+
+  // Experiments
+  experiments: Experiment[]
+  addExperiment: (e: Omit<Experiment, 'id' | 'createdAt'>) => Experiment
+  updateExperiment: (id: string, patch: Partial<Experiment>) => void
+  deleteExperiment: (id: string) => void
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -86,6 +93,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [evalDatasets, setEvalDatasets] = useState<EvalDataset[]>(MOCK_EVAL_DATASETS)
   const [datasetVersions, setDatasetVersions] = useState<DatasetVersion[]>(MOCK_DATASET_VERSIONS)
   const [datasetBatches, setDatasetBatches] = useState<DatasetBatch[]>(MOCK_DATASET_BATCHES)
+  const [experiments, setExperiments] = useState<Experiment[]>(MOCK_EXPERIMENTS)
 
   useEffect(() => {
     localStorage.setItem('simlab_user', JSON.stringify(user))
@@ -185,6 +193,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setDatasetBatches((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)))
   const deleteDatasetBatch = (id: string) => setDatasetBatches((prev) => prev.filter((b) => b.id !== id))
 
+  // Experiments
+  const addExperiment = (e: Omit<Experiment, 'id' | 'createdAt'>): Experiment => {
+    const exp: Experiment = { ...e, id: `exp-${uid()}`, createdAt: new Date().toISOString() }
+    setExperiments((prev) => [exp, ...prev])
+    return exp
+  }
+  const updateExperiment = (id: string, patch: Partial<Experiment>) =>
+    setExperiments((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)))
+  const deleteExperiment = (id: string) => setExperiments((prev) => prev.filter((e) => e.id !== id))
+
   return (
     <AppContext.Provider value={{
       user, login, logout,
@@ -196,6 +214,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       evalDatasets, addEvalDataset, updateEvalDataset, deleteEvalDataset,
       datasetVersions, addDatasetVersion, updateDatasetVersion, deleteDatasetVersion,
       datasetBatches, addDatasetBatch, updateDatasetBatch, deleteDatasetBatch,
+      experiments, addExperiment, updateExperiment, deleteExperiment,
     }}>
       {children}
     </AppContext.Provider>

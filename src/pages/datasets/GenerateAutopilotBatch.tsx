@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { flushSync } from 'react-dom'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { ChevronRight, Upload, X, FileText, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -57,6 +58,8 @@ export default function GenerateAutopilotBatch() {
   function handleGenerate() {
     const run = addGenerationRun({
       status: 'running',
+      versionId: versionId!,
+      datasetId: datasetId!,
       inputs: { documentName: reqFile?.name, policyConfig: policyJson.trim() || undefined },
       progress: [],
       scenarioIds: [],
@@ -66,25 +69,29 @@ export default function GenerateAutopilotBatch() {
 
     setTimeout(() => {
       const generatedIds: string[] = []
-      MOCK_SCENARIOS
-        .filter((s) => s.source === 'generated' && s.generationRunId === 'gen-1')
-        .forEach((sc) => {
-          const added = addScenario({ ...sc, generationRunId: run.id })
-          generatedIds.push(added.id)
-        })
 
-      updateGenerationRun(run.id, {
-        status: 'completed',
-        scenarioIds: generatedIds,
-        completedAt: new Date().toISOString(),
-        progress: GEN_STEPS.map((s, i) => ({
-          ...s,
-          percent: Math.round(((i + 1) / GEN_STEPS.length) * 100),
-          timestamp: new Date().toISOString(),
-        })),
+      // flushSync commits all state updates synchronously so AutopilotReview
+      // sees the scenarios and updated run on its first render after navigate()
+      flushSync(() => {
+        MOCK_SCENARIOS
+          .filter((s) => s.source === 'generated' && s.generationRunId === 'gen-1')
+          .forEach((sc) => {
+            const added = addScenario({ ...sc, generationRunId: run.id })
+            generatedIds.push(added.id)
+          })
+
+        updateGenerationRun(run.id, {
+          status: 'completed',
+          scenarioIds: generatedIds,
+          completedAt: new Date().toISOString(),
+          progress: GEN_STEPS.map((s, i) => ({
+            ...s,
+            percent: Math.round(((i + 1) / GEN_STEPS.length) * 100),
+            timestamp: new Date().toISOString(),
+          })),
+        })
       })
 
-      // Navigate to review — batch is created after the user approves scenarios
       navigate(`/datasets/${datasetId}/versions/${versionId}/generate/review/${run.id}`)
     }, GEN_STEPS.length * 1350)
   }

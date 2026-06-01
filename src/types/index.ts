@@ -82,6 +82,8 @@ export interface ProgressEvent {
 export interface GenerationRun {
   id: string
   status: JobStatus
+  versionId?: string
+  datasetId?: string
   inputs: {
     documentName?: string
     policyConfig?: string
@@ -112,6 +114,16 @@ export interface SimulationResult {
   failReason?: string
 }
 
+export interface Experiment {
+  id: string
+  name: string
+  description?: string
+  datasetId: string
+  versionId: string
+  agentId: string
+  createdAt: string
+}
+
 export interface SimulationRun {
   id: string
   agentId: string
@@ -124,4 +136,5 @@ export interface SimulationRun {
   completedAt?: string
   error?: string
   datasetBatchId?: string
+  experimentId?: string
 }
