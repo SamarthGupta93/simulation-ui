@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, XCircle, Loader2, Plus, FileText, Calendar, Search } from 'lucide-react'
+import { CheckCircle2, XCircle, Loader2, Plus, FileText, Calendar, Search, Lock } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -110,56 +110,76 @@ export default function ScenarioRuns() {
 function RunCard({ run, scenarioCount }: { run: GenerationRun; scenarioCount: number }) {
   const isCompleted = run.status === 'completed'
   const isFailed = run.status === 'failed'
+  const isReviewed = !!run.reviewed
+
+  const inner = (
+    <CardContent className="flex items-start gap-4 py-4">
+      <div className="mt-0.5 shrink-0">
+        {run.status === 'completed' && <CheckCircle2 size={20} className="text-green-500" />}
+        {run.status === 'failed' && <XCircle size={20} className="text-red-500" />}
+        {run.status === 'running' && <Loader2 size={20} className="animate-spin text-vz-red" />}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          {run.inputs.documentName ? (
+            <span className="flex items-center gap-1 text-sm font-semibold text-vz-gray-900">
+              <FileText size={13} className="text-vz-red" /> {run.inputs.documentName}
+            </span>
+          ) : (
+            <span className="text-sm font-semibold text-vz-gray-900">Policy JSON only</span>
+          )}
+          {run.inputs.policyConfig && run.inputs.documentName && (
+            <Badge>+ policy config</Badge>
+          )}
+        </div>
+        <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-vz-gray-400">
+          <span className="flex items-center gap-1">
+            <Calendar size={11} /> {new Date(run.createdAt).toLocaleString()}
+          </span>
+          {isCompleted && (
+            <span className="font-medium text-green-600">{scenarioCount} scenarios generated</span>
+          )}
+          {run.completedAt && (
+            <span>
+              {Math.round((new Date(run.completedAt).getTime() - new Date(run.createdAt).getTime()) / 1000)}s
+            </span>
+          )}
+        </div>
+        {run.error && <p className="mt-1.5 text-xs text-red-600">{run.error}</p>}
+      </div>
+
+      <div className="flex shrink-0 items-center gap-2">
+        <Badge variant={run.status === 'completed' ? 'success' : run.status === 'failed' ? 'error' : 'warning'}>
+          {run.status}
+        </Badge>
+        {isCompleted && !isReviewed && (
+          <Button asChild size="sm" variant="outline" onClick={(e) => e.stopPropagation()}>
+            <Link to={`/scenarios/runs/${run.id}`}>Review →</Link>
+          </Button>
+        )}
+        {isReviewed && (
+          <span className="flex items-center gap-1 text-xs font-medium text-green-600">
+            <Lock size={11} /> Reviewed
+          </span>
+        )}
+      </div>
+    </CardContent>
+  )
+
+  if (isReviewed) {
+    return (
+      <Card className="hover:border-vz-gray-300 transition-colors group cursor-pointer">
+        <Link to={`/scenarios/runs/${run.id}`} className="block">
+          {inner}
+        </Link>
+      </Card>
+    )
+  }
 
   return (
     <Card className={cn(isFailed && 'border-red-200 bg-red-50/30')}>
-      <CardContent className="flex items-start gap-4 py-4">
-        <div className="mt-0.5 shrink-0">
-          {run.status === 'completed' && <CheckCircle2 size={20} className="text-green-500" />}
-          {run.status === 'failed' && <XCircle size={20} className="text-red-500" />}
-          {run.status === 'running' && <Loader2 size={20} className="animate-spin text-vz-red" />}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            {run.inputs.documentName ? (
-              <span className="flex items-center gap-1 text-sm font-semibold text-vz-gray-900">
-                <FileText size={13} className="text-vz-red" /> {run.inputs.documentName}
-              </span>
-            ) : (
-              <span className="text-sm font-semibold text-vz-gray-900">Policy JSON only</span>
-            )}
-            {run.inputs.policyConfig && run.inputs.documentName && (
-              <Badge>+ policy config</Badge>
-            )}
-          </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-vz-gray-400">
-            <span className="flex items-center gap-1">
-              <Calendar size={11} /> {new Date(run.createdAt).toLocaleString()}
-            </span>
-            {isCompleted && (
-              <span className="font-medium text-green-600">{scenarioCount} scenarios generated</span>
-            )}
-            {run.completedAt && (
-              <span>
-                {Math.round((new Date(run.completedAt).getTime() - new Date(run.createdAt).getTime()) / 1000)}s
-              </span>
-            )}
-          </div>
-          {run.error && <p className="mt-1.5 text-xs text-red-600">{run.error}</p>}
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          <Badge variant={run.status === 'completed' ? 'success' : run.status === 'failed' ? 'error' : 'warning'}>
-            {run.status}
-          </Badge>
-          {isCompleted && (
-            <Button asChild size="sm" variant="outline">
-              <Link to={`/scenarios/runs/${run.id}`}>Review →</Link>
-            </Button>
-          )}
-        </div>
-      </CardContent>
+      {inner}
     </Card>
   )
 }

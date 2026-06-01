@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, ChevronDown, ChevronUp, Check, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -9,10 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useApp } from '@/context/AppContext'
 import type { Scenario } from '@/types'
+import { cn } from '@/lib/utils'
 
 export default function GeneratorReview() {
   const { id } = useParams<{ id: string }>()
-  const { generationRuns, scenarios, updateScenario, deleteScenario } = useApp()
+  const { generationRuns, scenarios, updateScenario, deleteScenario, updateGenerationRun } = useApp()
 
   const run = generationRuns.find((r) => r.id === id)
   const runScenarios = scenarios.filter((s) => run?.scenarioIds.includes(s.id))
@@ -31,6 +32,14 @@ export default function GeneratorReview() {
     )
   }
 
+  const isReviewed = !!run.reviewed
+  const canReview = run.status === 'completed' && !isReviewed && runScenarios.length > 0
+
+  function handleSaveReview() {
+    updateGenerationRun(run!.id, { reviewed: true })
+    setEditingId(null)
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-6 animate-fade-in">
       {/* Header */}
@@ -44,8 +53,30 @@ export default function GeneratorReview() {
           </p>
           <p className="text-xs text-vz-gray-400">{new Date(run.createdAt).toLocaleString()}</p>
         </div>
-        <Badge variant={run.status === 'completed' ? 'success' : 'error'}>{run.status}</Badge>
+        <div className="flex items-center gap-2 shrink-0">
+          <Badge variant={run.status === 'completed' ? 'success' : 'error'}>{run.status}</Badge>
+          {isReviewed && (
+            <span className="flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-green-700">
+              <Lock size={9} /> Reviewed
+            </span>
+          )}
+          {canReview && (
+            <Button onClick={handleSaveReview} size="sm">
+              <Check size={13} /> Save Review
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Reviewed notice */}
+      {isReviewed && (
+        <div className="flex items-center gap-2.5 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+          <Lock size={13} className="shrink-0 text-green-600" />
+          <p className="text-sm text-green-800">
+            This run has been reviewed and is locked. Scenarios are saved to the library and cannot be edited here.
+          </p>
+        </div>
+      )}
 
       {/* Policy config used */}
       {run.inputs.policyConfig && (
@@ -73,6 +104,7 @@ export default function GeneratorReview() {
                 scenario={sc}
                 isEditing={editingId === sc.id}
                 isExpanded={expandedId === sc.id}
+                isLocked={isReviewed}
                 onToggleExpand={() => setExpandedId(expandedId === sc.id ? null : sc.id)}
                 onEdit={() => setEditingId(editingId === sc.id ? null : sc.id)}
                 onSave={() => setEditingId(null)}
@@ -89,14 +121,30 @@ export default function GeneratorReview() {
           No scenarios were generated in this run.
         </p>
       )}
+
+      {/* Bottom save bar */}
+      {canReview && (
+        <div className="flex items-center justify-between pt-2 border-t border-border">
+          <p className="text-xs text-vz-gray-400">
+            {runScenarios.length} scenario{runScenarios.length !== 1 ? 's' : ''} will be locked in the library.
+          </p>
+          <Button onClick={handleSaveReview}>
+            <Check size={13} /> Save Review
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
 
-function ReviewCard({ scenario: sc, isEditing, isExpanded, onToggleExpand, onEdit, onSave, onDelete, onChange }: {
+function ReviewCard({
+  scenario: sc, isEditing, isExpanded, isLocked,
+  onToggleExpand, onEdit, onSave, onDelete, onChange,
+}: {
   scenario: Scenario
   isEditing: boolean
   isExpanded: boolean
+  isLocked: boolean
   onToggleExpand: () => void
   onEdit: () => void
   onSave: () => void
@@ -104,7 +152,7 @@ function ReviewCard({ scenario: sc, isEditing, isExpanded, onToggleExpand, onEdi
   onChange: (p: Partial<Scenario>) => void
 }) {
   return (
-    <Card>
+    <Card className={cn(isLocked && 'opacity-80')}>
       <div className="flex cursor-pointer items-start gap-3 p-4" onClick={onToggleExpand}>
         <div className="flex-1 min-w-0">
           {isEditing ? (
@@ -123,12 +171,17 @@ function ReviewCard({ scenario: sc, isEditing, isExpanded, onToggleExpand, onEdi
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
-          <Button variant="ghost" size="icon" onClick={isEditing ? onSave : onEdit}>
-            <Pencil size={14} className="text-vz-gray-400" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={onDelete}>
-            <Trash2 size={14} className="text-vz-gray-400" />
-          </Button>
+          {!isLocked && (
+            <>
+              <Button variant="ghost" size="icon" onClick={isEditing ? onSave : onEdit}>
+                <Pencil size={14} className={cn(isEditing ? 'text-vz-red' : 'text-vz-gray-400')} />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={onDelete}>
+                <Trash2 size={14} className="text-vz-gray-400" />
+              </Button>
+            </>
+          )}
+          {isLocked && <Lock size={12} className="text-vz-gray-300 mx-1" />}
           {isExpanded
             ? <ChevronUp size={14} className="text-vz-gray-300" />
             : <ChevronDown size={14} className="text-vz-gray-300" />}
@@ -181,4 +234,3 @@ function ReviewCard({ scenario: sc, isEditing, isExpanded, onToggleExpand, onEdi
     </Card>
   )
 }
-

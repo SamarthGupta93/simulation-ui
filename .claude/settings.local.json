@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"const {chromium} = require\\('playwright'\\); \\(async\\(\\)=>{const b=await chromium.launch\\({args:['--no-sandbox','--disable-setuid-sandbox']}\\);const p=await b.newPage\\(\\);await p.goto\\('http://localhost:5174/'\\);await p.waitForTimeout\\(2000\\);await p.screenshot\\({path:'/tmp/sim-login.png',fullPage:false}\\);console.log\\('screenshot saved'\\);await b.close\\(\\);}\\)\\(\\)\")",
+      "Bash(pkill -f \"vite --port 5174\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

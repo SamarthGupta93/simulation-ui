@@ -213,6 +213,7 @@ export const MOCK_GENERATION_RUNS: GenerationRun[] = [
       { step: 'Finalize', message: '5 scenarios ready for review', percent: 100, timestamp: '2026-05-15T10:00:30Z' },
     ],
     scenarioIds: ['sc-1', 'sc-2', 'sc-5'],
+    reviewed: true,
     createdAt: '2026-05-15T09:57:00Z',
     completedAt: '2026-05-15T10:00:30Z',
   },

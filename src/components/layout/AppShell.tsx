@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, BookOpen, PlusCircle, Cpu, History, Server, BookMarked,
+  LayoutDashboard, BookOpen, PlusCircle, History, Server, BookMarked,
   Database, ChevronDown, LogOut, FolderKanban, Layers, FlaskConical,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -34,19 +34,17 @@ function buildNav(): NavSection[] {
       ],
     },
     {
-      heading: 'Scenario Builder',
+      heading: 'Scenarios',
       items: [
         { label: 'Scenario Library', icon: BookOpen, to: '/scenarios', matchPrefixes: ['/scenarios'] },
-        { label: 'Create / Generate', icon: PlusCircle, to: '/scenarios/new' },
-        { label: 'Generation Runs', icon: History, to: '/scenarios/runs' },
+        { label: 'Scenario Builder', icon: PlusCircle, to: '/scenarios/runs', matchPrefixes: ['/scenarios/runs'] },
       ],
     },
     {
       heading: 'Simulation',
       items: [
         { label: 'Experiments', icon: FlaskConical, to: '/experiments', matchPrefixes: ['/experiments'] },
-        { label: 'Run Simulation', icon: Cpu, to: '/simulator', exact: true },
-        { label: 'Run History', icon: History, to: '/simulator/runs', matchPrefixes: ['/simulator/runs'] },
+        { label: 'Simulation Runs', icon: History, to: '/simulator/runs', matchPrefixes: ['/simulator/runs'] },
       ],
     },
     {
@@ -63,10 +61,7 @@ function isActive(item: NavItem, pathname: string): boolean {
   if (item.to === '/scenarios') {
     return pathname === '/scenarios'
   }
-  if (item.to === '/simulator') {
-    return pathname === '/simulator'
-  }
-  if (item.matchPrefixes) {
+if (item.matchPrefixes) {
     return item.matchPrefixes.some((p) => pathname.startsWith(p))
   }
   return pathname === item.to || pathname.startsWith(item.to + '/')

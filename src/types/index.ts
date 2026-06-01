@@ -90,6 +90,7 @@ export interface GenerationRun {
   }
   progress: ProgressEvent[]
   scenarioIds: string[]
+  reviewed?: boolean
   createdAt: string
   completedAt?: string
   error?: string
